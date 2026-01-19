@@ -1,0 +1,116 @@
+{
+  "workflow_version": "1.2.0",
+  "timestamps": {
+    "started": "2026-01-19T10:50:00.000Z",
+    "last_updated": "2026-01-19T11:01:00.000Z"
+  },
+  "mode": "initial_scan",
+  "scan_level": "deep",
+  "project_root": "C:\\Users\\erikc\\Dev\\Lincoln",
+  "output_folder": "C:\\Users\\erikc\\Dev\\Lincoln\\docs",
+  "completed_steps": [
+    {
+      "step": "step_1",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:52:00.000Z",
+      "summary": "Classified as monolith with 1 parts"
+    },
+    {
+      "step": "step_2",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:53:00.000Z",
+      "summary": "Found 3 existing docs"
+    },
+    {
+      "step": "step_3",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:54:00.000Z",
+      "summary": "Tech stack: TypeScript CLI with ink"
+    },
+    {
+      "step": "step_4",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:55:00.000Z",
+      "summary": "Conditional analysis complete, 1 files written"
+    },
+    {
+      "step": "step_5",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:56:00.000Z",
+      "summary": "Source tree documented"
+    },
+    {
+      "step": "step_6",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:57:00.000Z",
+      "summary": "Dev/deployment guides written"
+    },
+    {
+      "step": "step_7",
+      "status": "skipped",
+      "timestamp": "2026-01-19T10:58:00.000Z",
+      "summary": "Single-part project (no integration needed)"
+    },
+    {
+      "step": "step_8",
+      "status": "completed",
+      "timestamp": "2026-01-19T10:59:00.000Z",
+      "summary": "Architecture doc written for 1 part"
+    },
+    {
+      "step": "step_9",
+      "status": "completed",
+      "timestamp": "2026-01-19T11:00:00.000Z",
+      "summary": "All supporting docs written"
+    },
+    {
+      "step": "step_10",
+      "status": "completed",
+      "timestamp": "2026-01-19T11:01:00.000Z",
+      "summary": "Master index generated"
+    }
+  ],
+  "current_step": "step_11",
+  "findings": {
+    "project_classification": {
+      "repository_type": "monolith",
+      "parts_count": 1,
+      "primary_tech": "TypeScript CLI with ink"
+    },
+    "technology_stack": {
+      "primary_language": "TypeScript",
+      "framework": "React (ink)",
+      "cli_tool": "ink 6.6.0"
+    },
+    "architecture_pattern": "Event-driven file watcher with reactive UI",
+    "cli_analysis": {
+      "source_files_count": 5,
+      "test_files_count": 0,
+      "config_files_count": 2,
+      "ci_cd_files_count": 0,
+      "shared_code_modules": ["types.ts"]
+    },
+    "deployment_found": false,
+    "contribution_found": false
+  },
+  "project_types": [
+    {
+      "part_id": "lincoln",
+      "project_type_id": "cli",
+      "display_name": "CLI Tool"
+    }
+  ],
+  "outputs_generated": [
+    "project-scan-report.json",
+    "project-structure.md",
+    "existing-documentation-inventory.md",
+    "technology-stack.md",
+    "cli-project-analysis.md",
+    "source-tree-analysis.md",
+    "development-guide.md",
+    "architecture.md",
+    "project-overview.md",
+    "index.md"
+  ],
+  "resume_instructions": "Starting from step 1"
+}

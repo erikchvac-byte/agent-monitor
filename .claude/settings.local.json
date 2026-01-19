@@ -1,0 +1,13 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(printf:*)",
+      "Bash(npx bmad-method:*)",
+      "Bash(npx bmad-method@alpha install:*)",
+      "WebSearch",
+      "Bash(git clone:*)",
+      "Bash(npm install)",
+      "Bash(node tools/cli/bmad-cli.js install:*)"
+    ]
+  }
+}

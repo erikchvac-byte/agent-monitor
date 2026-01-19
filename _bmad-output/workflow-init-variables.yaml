@@ -1,0 +1,10 @@
+# Workflow Init - Temporary Variables
+project_name: Lincoln
+state: LEGACY
+field_type: brownfield
+selected_track: method
+continuing_existing: true
+discovery_workflows: none
+brainstorm_requested: false
+research_requested: false
+product_brief_requested: false
