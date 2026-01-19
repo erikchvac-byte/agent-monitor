@@ -1,0 +1,49 @@
+{
+  "name": "agent-monitor",
+  "version": "0.1.0",
+  "description": "A read-only CLI tool for monitoring MCP (Model Context Protocol) agent activity in real-time.",
+  "type": "module",
+  "main": "dist/index.js",
+  "bin": {
+    "agent-monitor": "./dist/index.js"
+  },
+  "scripts": {
+    "start": "tsx src/index.ts",
+    "build": "tsc",
+    "dev": "tsx watch src/index.ts",
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/erikchvac-byte/agent-monitor.git"
+  },
+  "keywords": [
+    "mcp",
+    "agent",
+    "monitor",
+    "cli",
+    "typescript"
+  ],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/erikchvac-byte/agent-monitor/issues"
+  },
+  "homepage": "https://github.com/erikchvac-byte/agent-monitor#readme",
+  "dependencies": {
+    "chalk": "^5.6.2",
+    "chokidar": "^5.0.0",
+    "ink": "^6.6.0",
+    "react": "^19.2.3"
+  },
+  "devDependencies": {
+    "@types/chokidar": "^1.7.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^25.0.9",
+    "@types/react": "^19.2.8",
+    "jest": "^30.2.0",
+    "ts-jest": "^29.4.6",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
