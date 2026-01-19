@@ -121,9 +121,10 @@ export const App: React.FC = () => {
             const time = formatTimestamp(activity.timestamp);
             const actionText = formatAction(activity.action);
             const durationText = `(${activity.duration_ms}ms)`;
+            const uniqueKey = `${activity.timestamp}-${activity.agent}-${idx}`;
 
             return (
-              <Box key={idx} gap={1}>
+              <Box key={uniqueKey} gap={1}>
                 <Text dimColor>{time}</Text>
                 <Text color={color}>[{activity.agent}]</Text>
                 <Text color={activity.status === 'failure' ? 'red' : 'white'}>
