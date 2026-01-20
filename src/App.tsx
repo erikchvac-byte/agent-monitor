@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
 import chalk from 'chalk';
 import { LogTailer } from './logTailer.js';
@@ -12,16 +12,28 @@ export const App: React.FC = () => {
   const [statusMessage, setStatusMessage] = useState('Starting monitor...');
   const { exit } = useApp();
 
-  const logTailer = new LogTailer();
-  const noteWriter = new NoteWriter();
+  const logTailerRef = useRef<LogTailer | null>(null);
+  const noteWriterRef = useRef<NoteWriter | null>(null);
+
+  const MAX_ACTIVITIES = 50;
 
   useEffect(() => {
+    // Initialize singletons
+    if (!logTailerRef.current) {
+      logTailerRef.current = new LogTailer();
+    }
+    if (!noteWriterRef.current) {
+      noteWriterRef.current = new NoteWriter();
+    }
+
+    const logTailer = logTailerRef.current;
+
     const startTailer = async () => {
       try {
-        await logTailer.start((activity) => {
-          setActivities((prev) => [...prev, activity].slice(-50));
+        await logTailer.start(activity => {
+          setActivities(prev => [...prev, activity].slice(-MAX_ACTIVITIES));
         });
-        
+
         // Load initial activities
         const initial = logTailer.getActivities();
         setActivities(initial);
@@ -43,9 +55,12 @@ export const App: React.FC = () => {
       // In note mode
       if (key.return) {
         // Save note
-        const activeAgents = noteWriter.getActiveAgents(activities);
-        await noteWriter.writeNote(noteText, activeAgents);
-        setStatusMessage(`Note saved: "${noteText.substring(0, 40)}..."`);
+        const noteWriter = noteWriterRef.current;
+        if (noteWriter) {
+          const activeAgents = noteWriter.getActiveAgents(activities);
+          await noteWriter.writeNote(noteText, activeAgents);
+          setStatusMessage(`Note saved: "${noteText.substring(0, 40)}..."`);
+        }
         setNoteText('');
         setNoteMode(false);
       } else if (key.escape) {
@@ -55,10 +70,10 @@ export const App: React.FC = () => {
         setStatusMessage('Note cancelled');
       } else if (key.backspace || key.delete) {
         // Delete character
-        setNoteText((prev) => prev.slice(0, -1));
+        setNoteText(prev => prev.slice(0, -1));
       } else if (!key.ctrl && !key.meta && input) {
         // Add character
-        setNoteText((prev) => prev + input);
+        setNoteText(prev => prev + input);
       }
     } else {
       // Normal mode
@@ -85,14 +100,14 @@ export const App: React.FC = () => {
   const formatAction = (action: string): string => {
     // Convert action names to human-readable format
     const actionMap: Record<string, string> = {
-      'execute_task': 'Executing',
-      'route_task': 'Routing',
-      'analyze_task_complexity': 'Analyzing',
-      'review_code': 'Reviewing',
-      'repair_code': 'Repairing',
-      'analyze_error': 'Debugging',
-      'document_code': 'Documenting',
-      'generate_report': 'Reporting',
+      execute_task: 'Executing',
+      route_task: 'Routing',
+      analyze_task_complexity: 'Analyzing',
+      review_code: 'Reviewing',
+      repair_code: 'Repairing',
+      analyze_error: 'Debugging',
+      document_code: 'Documenting',
+      generate_report: 'Reporting',
     };
     return actionMap[action] || action;
   };
@@ -116,6 +131,8 @@ export const App: React.FC = () => {
           <Text dimColor>Waiting for agent activity...</Text>
         ) : (
           activities.slice(-15).map((activity, idx) => {
+            // Displays last 15 activities with newest at the bottom (oldest → newest)
+            // This matches typical log reading pattern where newest events appear last
             const color = getAgentColor(activity.agent);
             const icon = getStatusIcon(activity.status);
             const time = formatTimestamp(activity.timestamp);

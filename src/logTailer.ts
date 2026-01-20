@@ -7,9 +7,10 @@ import { Activity, LogEntry } from './types.js';
 export class LogTailer {
   private logsDir: string;
   private activities: Activity[] = [];
-  private maxActivities: number;
+  public readonly maxActivities: number;
   private watcher: FSWatcher | null = null;
   private onActivityCallback: ((activity: Activity) => void) | null = null;
+  private filePositions: Map<string, number> = new Map();
 
   constructor(logsDir: string = '../Agents/logs/conversation_logs', maxActivities: number = 50) {
     this.logsDir = path.resolve(logsDir);
@@ -67,26 +68,29 @@ export class LogTailer {
    */
   private async readExistingLogs(): Promise<void> {
     const files = fs.readdirSync(this.logsDir).filter(f => f.endsWith('.log'));
-    
+
     // Sort by modification time (newest first)
     const sortedFiles = files
       .map(f => ({
         name: f,
         path: path.join(this.logsDir, f),
         mtime: fs.statSync(path.join(this.logsDir, f)).mtime.getTime(),
+        size: fs.statSync(path.join(this.logsDir, f)).size,
       }))
       .sort((a, b) => b.mtime - a.mtime);
 
     // Read last N lines from each file
     for (const file of sortedFiles) {
       await this.readLastLines(file.path, 20);
+      // Track current file position for future updates
+      this.filePositions.set(file.path, file.size);
     }
 
     // Sort activities by timestamp and keep only last maxActivities
-    this.activities.sort((a, b) => 
-      new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
+    this.activities.sort(
+      (a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime()
     );
-    
+
     if (this.activities.length > this.maxActivities) {
       this.activities = this.activities.slice(-this.maxActivities);
     }
@@ -97,7 +101,10 @@ export class LogTailer {
    */
   private async readLastLines(filePath: string, count: number): Promise<void> {
     const content = fs.readFileSync(filePath, 'utf-8');
-    const lines = content.trim().split('\n').filter(l => l.trim());
+    const lines = content
+      .trim()
+      .split('\n')
+      .filter(l => l.trim());
     const lastLines = lines.slice(-count);
 
     for (const line of lastLines) {
@@ -109,7 +116,29 @@ export class LogTailer {
    * Read new lines from a file (called when file changes)
    */
   private async readNewLines(filePath: string): Promise<void> {
-    const fileStream = fs.createReadStream(filePath, { encoding: 'utf-8' });
+    const lastPosition = this.filePositions.get(filePath) || 0;
+    const stats = fs.statSync(filePath);
+    const currentPosition = stats.size;
+
+    // If file was truncated, read entire file
+    if (currentPosition < lastPosition) {
+      this.filePositions.delete(filePath);
+      await this.readLastLines(filePath, 20);
+      this.filePositions.set(filePath, currentPosition);
+      return;
+    }
+
+    // If no new data, skip
+    if (currentPosition === lastPosition) {
+      return;
+    }
+
+    // Read only new data
+    const fileStream = fs.createReadStream(filePath, {
+      encoding: 'utf-8',
+      start: lastPosition,
+    });
+
     const rl = readline.createInterface({
       input: fileStream,
       crlfDelay: Infinity,
@@ -122,9 +151,11 @@ export class LogTailer {
       }
     }
 
-    // Only process new lines (last few lines that we haven't seen)
-    const newLines = lines.slice(-5);
-    for (const line of newLines) {
+    // Update file position
+    this.filePositions.set(filePath, currentPosition);
+
+    // Process all new lines
+    for (const line of lines) {
       const activity = this.parseLine(line);
       if (activity && this.onActivityCallback) {
         this.onActivityCallback(activity);
@@ -138,7 +169,7 @@ export class LogTailer {
   private parseLine(line: string): Activity | null {
     try {
       const entry: LogEntry = JSON.parse(line);
-      
+
       // Convert LogEntry to Activity
       const activity: Activity = {
         timestamp: entry.timestamp,
@@ -150,7 +181,12 @@ export class LogTailer {
       };
 
       // Extract task from input if available
-      if (entry.input?.task) {
+      if (
+        entry.input &&
+        typeof entry.input === 'object' &&
+        'task' in entry.input &&
+        typeof entry.input.task === 'string'
+      ) {
         activity.task = entry.input.task.substring(0, 60);
       }
 
@@ -161,8 +197,11 @@ export class LogTailer {
       }
 
       return activity;
-    } catch (error) {
-      // Skip invalid JSON lines
+    } catch {
+      // Log parse errors to stderr for debugging
+      console.error(
+        `[${new Date().toISOString()}] [ParseError] Invalid JSON in log line - Verify agent logs are well-formed`
+      );
       return null;
     }
   }

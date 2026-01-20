@@ -15,14 +15,13 @@ export class NoteWriter {
   async writeNote(note: string, activeAgents: string[]): Promise<void> {
     const timestamp = new Date().toISOString();
     const formattedTimestamp = this.formatTimestamp(timestamp);
-    
+
     // Format: [YYYY-MM-DD HH:MM:SS] [Agent: agent1, agent2] Note text
-    const agentTag = activeAgents.length > 0 
-      ? `[Agent: ${activeAgents.join(', ')}]` 
-      : '[Agent: none]';
-    
+    const agentTag =
+      activeAgents.length > 0 ? `[Agent: ${activeAgents.join(', ')}]` : '[Agent: none]';
+
     const line = `${formattedTimestamp} ${agentTag} ${note}\n`;
-    
+
     await fs.promises.appendFile(this.notesFile, line, 'utf-8');
   }
 
@@ -31,8 +30,8 @@ export class NoteWriter {
    */
   getActiveAgents(activities: Activity[], withinSeconds: number = 10): string[] {
     const now = Date.now();
-    const cutoff = now - (withinSeconds * 1000);
-    
+    const cutoff = now - withinSeconds * 1000;
+
     const recentActivities = activities.filter(a => {
       const activityTime = new Date(a.timestamp).getTime();
       return activityTime >= cutoff;
@@ -54,7 +53,7 @@ export class NoteWriter {
     const hours = String(date.getHours()).padStart(2, '0');
     const minutes = String(date.getMinutes()).padStart(2, '0');
     const seconds = String(date.getSeconds()).padStart(2, '0');
-    
+
     return `[${year}-${month}-${day} ${hours}:${minutes}:${seconds}]`;
   }
 }

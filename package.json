@@ -11,7 +11,12 @@
     "start": "tsx src/index.ts",
     "build": "tsc",
     "dev": "tsx watch src/index.ts",
-    "test": "jest"
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src --ext .ts,.tsx",
+    "lint:fix": "eslint src --ext .ts,.tsx --fix",
+    "format": "prettier --write \"src/**/*.ts\" \"src/**/*.tsx\"",
+    "typecheck": "tsc --noEmit"
   },
   "repository": {
     "type": "git",
@@ -37,13 +42,23 @@
     "react": "^19.2.3"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
     "@types/chokidar": "^1.7.5",
     "@types/jest": "^30.0.0",
     "@types/node": "^25.0.9",
     "@types/react": "^19.2.8",
+    "@typescript-eslint/eslint-plugin": "^8.53.1",
+    "@typescript-eslint/parser": "^8.53.1",
+    "eslint": "^9.39.2",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-plugin-prettier": "^5.5.5",
     "jest": "^30.2.0",
+    "prettier": "^3.8.0",
     "ts-jest": "^29.4.6",
     "tsx": "^4.21.0",
-    "typescript": "^5.9.3"
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.53.1"
   }
 }

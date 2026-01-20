@@ -1,0 +1,100 @@
+# generated: 2026-01-19
+# project: Lincoln
+# project_key: lincoln
+# tracking_system: file-system
+# story_location: _bmad-output/implementation-artifacts/stories/
+
+# STATUS DEFINITIONS:
+# ==================
+# Epic Status:
+#   - backlog: Epic not yet started
+#   - in-progress: Epic actively being worked on
+#   - done: All stories in epic completed
+#
+# Epic Status Transitions:
+#   - backlog → in-progress: Automatically when first story is created (via create-story)
+#   - in-progress → done: Manually when all stories reach 'done' status
+#
+# Story Status:
+#   - backlog: Story only exists in epic file
+#   - ready-for-dev: Story file created in stories folder
+#   - in-progress: Developer actively working on implementation
+#   - review: Ready for code review (via Dev's code-review workflow)
+#   - done: Story completed
+#
+# Retrospective Status:
+#   - optional: Can be completed but not required
+#   - done: Retrospective has been completed
+#
+# WORKFLOW NOTES:
+# ===============
+# - Epic transitions to 'in-progress' automatically when first story is created
+# - Stories can be worked in parallel if team capacity allows
+# - SM typically creates next story after previous one is 'done' to incorporate learnings
+# - Dev moves story to 'review', then runs code-review (fresh context, different LLM recommended)
+
+generated: 2026-01-19
+project: Lincoln
+project_key: lincoln
+tracking_system: file-system
+story_location: _bmad-output/implementation-artifacts/stories/
+
+development_status:
+  # Epic 1: Real-Time Activity Monitoring (6 stories)
+  epic-1: in-progress
+  1-1-observe-agent-actions-in-real-time: done
+  1-2-view-activity-buffer-of-50-items: backlog
+  1-3-display-last-15-activities-in-feed: backlog
+  1-4-detect-log-file-changes: backlog
+  1-5-parse-jsonl-log-entries: backlog
+  1-6-extract-activity-information: backlog
+  epic-1-retrospective: optional
+
+  # Epic 2: Visual Pattern Recognition (6 stories)
+  epic-2: backlog
+  2-1-color-coded-agent-type-display: backlog
+  2-2-success-failure-status-indicators: backlog
+  2-3-prominent-error-message-display: backlog
+  2-4-scrollable-activity-history: backlog
+  2-5-formatted-timestamp-display: backlog
+  2-6-duration-information-display: backlog
+  epic-2-retrospective: optional
+
+  # Epic 3: Knowledge Capture (5 stories)
+  epic-3: backlog
+  3-1-enter-note-taking-mode: backlog
+  3-2-auto-tag-notes-with-active-agents: backlog
+  3-3-save-notes-with-timestamps: backlog
+  3-4-append-notes-to-progress-file: backlog
+  3-5-display-previously-captured-notes: backlog
+  epic-3-retrospective: optional
+
+  # Epic 4: Interactive Controls (9 stories)
+  epic-4: backlog
+  4-1-press-n-to-enter-note-mode: backlog
+  4-2-press-q-to-quit-application: backlog
+  4-3-press-to-view-help: backlog
+  4-4-press-esc-to-cancel-note-mode: backlog
+  4-5-type-characters-in-note-mode: backlog
+  4-6-press-enter-to-save-note: backlog
+  4-7-detect-tty-support: backlog
+  4-8-display-non-interactive-warning: backlog
+  4-9-operate-in-read-only-mode: backlog
+  epic-4-retrospective: optional
+
+  # Epic 5: Error Handling (4 stories)
+  epic-5: backlog
+  5-1-continue-operation-with-invalid-json: backlog
+  5-2-display-error-for-missing-log-files: backlog
+  5-3-display-operation-state-messages: backlog
+  5-4-view-system-errors-and-warnings: backlog
+  epic-5-retrospective: optional
+
+  # Epic 6: System Performance (6 stories)
+  epic-6: backlog
+  6-1-maintain-activity-buffer-of-50-items: backlog
+  6-2-automatically-remove-oldest-activities: backlog
+  6-3-read-last-20-lines-on-startup: backlog
+  6-4-read-last-5-lines-on-file-change: backlog
+  6-5-limit-displayed-activities-to-15-items: backlog
+  epic-6-retrospective: optional

@@ -16,8 +16,8 @@ export interface LogEntry {
   timestamp: string;
   agent: string;
   action: string;
-  input?: any;
-  output?: any;
+  input?: unknown;
+  output?: unknown;
   duration_ms: number;
   error?: string;
 }
