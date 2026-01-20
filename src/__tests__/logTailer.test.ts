@@ -340,4 +340,274 @@ describe('LogTailer', () => {
       expect(processTime).toBeLessThan(1000);
     });
   });
+
+  describe('High-Frequency Circular Buffer Tests (Story 1.2)', () => {
+    it('should handle 100 rapid sequential insertions within 1 second', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const jsonLines = Array.from({ length: 100 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'test_action',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      const startTime = Date.now();
+      await bufferTailer.start(() => {});
+      const totalTime = Date.now() - startTime;
+
+      const activities = bufferTailer.getActivities();
+
+      expect(totalTime).toBeLessThan(1000);
+      expect(activities.length).toBeGreaterThan(0);
+      expect(activities.length).toBeLessThanOrEqual(50);
+      expect(activities[activities.length - 1].agent).toBe('Agent99');
+
+      for (let i = 0; i < activities.length - 1; i++) {
+        expect(new Date(activities[i].timestamp).getTime()).toBeLessThanOrEqual(
+          new Date(activities[i + 1].timestamp).getTime()
+        );
+      }
+    });
+
+    it('should maintain FIFO ordering with rapid insertions', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 10);
+      const jsonLines = Array.from({ length: 30 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:${String(i).padStart(2, '0')}:00Z`,
+          agent: `Agent${i}`,
+          action: 'test_action',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      await bufferTailer.start(() => {});
+
+      const activities = bufferTailer.getActivities();
+
+      expect(activities).toHaveLength(10);
+      expect(activities[0].agent).toBe('Agent20');
+      expect(activities[9].agent).toBe('Agent29');
+    });
+
+    it('should enforce buffer size invariant (never exceeds maxActivities)', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 5);
+      const jsonLines = Array.from({ length: 1000 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:${String(i).padStart(3, '0')}:00Z`,
+          agent: `Agent${i}`,
+          action: 'test_action',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      await bufferTailer.start(() => {});
+
+      const activities = bufferTailer.getActivities();
+
+      expect(activities.length).toBeLessThanOrEqual(5);
+      expect(activities).toHaveLength(5);
+    });
+
+    it('should handle burst insertions (50 activities in 100ms)', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const jsonLines = Array.from({ length: 50 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:00:${String(i).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'burst_test',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      const startTime = Date.now();
+      await bufferTailer.start(() => {});
+      const burstTime = Date.now() - startTime;
+
+      const activities = bufferTailer.getActivities();
+
+      expect(burstTime).toBeLessThan(100);
+      expect(activities.length).toBeLessThanOrEqual(50);
+      activities.forEach(activity => {
+        expect(activity.action).toBe('burst_test');
+      });
+    });
+
+    it('should maintain consistency with multiple files updating', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const files = ['agent1.log', 'agent2.log', 'agent3.log'];
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(files);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+
+      let fileIndex = 0;
+      (fs.readFileSync as jest.Mock).mockImplementation(() => {
+        const fileLines = Array.from({ length: 20 }, (_, i) =>
+          JSON.stringify({
+            timestamp: `2024-01-01T00:${String(fileIndex).padStart(2, '0')}:${String(i).padStart(2, '0')}Z`,
+            agent: `Agent${fileIndex}-${i}`,
+            action: 'multi_file_test',
+            duration_ms: 100,
+          })
+        );
+        fileIndex++;
+        return fileLines.join('\n');
+      });
+
+      await bufferTailer.start(() => {});
+
+      const activities = bufferTailer.getActivities();
+
+      expect(activities.length).toBeLessThanOrEqual(50);
+      expect(activities).toHaveLength(50);
+
+      const uniqueAgents = new Set(activities.map(a => a.agent));
+      expect(uniqueAgents.size).toBeGreaterThan(1);
+
+      activities.forEach(activity => {
+        expect(activity.action).toBe('multi_file_test');
+      });
+    });
+
+    it('should buffer performance under sustained load', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const jsonLines = Array.from({ length: 500 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:${String(Math.floor(i / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'sustained_load_test',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      const startTime = Date.now();
+      await bufferTailer.start(() => {});
+      const totalTime = Date.now() - startTime;
+
+      const activities = bufferTailer.getActivities();
+
+      expect(totalTime).toBeLessThan(2000);
+      expect(activities.length).toBeLessThanOrEqual(50);
+
+      const avgTimePerActivity = totalTime / 500;
+      expect(avgTimePerActivity).toBeLessThan(4);
+    });
+
+    it('should maintain memory efficiency (<50MB NFR-P3)', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const jsonLines = Array.from({ length: 10000 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:${String(Math.floor(i / 3600)).padStart(2, '0')}:${String(Math.floor((i % 3600) / 60)).padStart(2, '0')}:${String(i % 60).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'memory_test',
+          duration_ms: 100,
+          task: 'This is a test task that consumes memory but should be limited to 60 characters',
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      const memBefore = process.memoryUsage().heapUsed;
+      await bufferTailer.start(() => {});
+      const memAfter = process.memoryUsage().heapUsed;
+
+      const memDelta = (memAfter - memBefore) / (1024 * 1024);
+
+      expect(memDelta).toBeLessThan(50);
+
+      const activities = bufferTailer.getActivities();
+      expect(activities.length).toBeLessThanOrEqual(50);
+    });
+
+    it('should handle buffer corruption scenarios gracefully', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 10);
+      const jsonLines = Array.from({ length: 15 }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:00:${String(i).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'corruption_test',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      await bufferTailer.start(() => {});
+
+      const activities = bufferTailer.getActivities();
+
+      expect(activities).toHaveLength(10);
+      expect(activities.length).toBeLessThanOrEqual(10);
+
+      activities.forEach(activity => {
+        expect(activity.action).toBe('corruption_test');
+      });
+    });
+
+    it('should benchmark buffer operations (push + shift)', async () => {
+      const bufferTailer = new LogTailer('/test/logs', 50);
+      const iterations = 1000;
+      const jsonLines = Array.from({ length: iterations }, (_, i) =>
+        JSON.stringify({
+          timestamp: `2024-01-01T00:00:${String(i % 60).padStart(2, '0')}Z`,
+          agent: `Agent${i}`,
+          action: 'benchmark_test',
+          duration_ms: 100,
+        })
+      );
+
+      (fs.existsSync as jest.Mock).mockReturnValue(true);
+      (fs.readdirSync as jest.Mock).mockReturnValue(['agent1.log']);
+      (fs.statSync as jest.Mock).mockReturnValue({ mtime: { getTime: () => 1000 } });
+      (fs.readFileSync as jest.Mock).mockReturnValue(jsonLines.join('\n'));
+
+      const startTime = Date.now();
+      await bufferTailer.start(() => {});
+      const totalTime = Date.now() - startTime;
+
+      const avgTimePerOp = totalTime / iterations;
+      const opsPerSecond = 1000 / avgTimePerOp;
+
+      console.log(`\n[Benchmark] Buffer Operations Performance:`);
+      console.log(`  Total time for ${iterations} operations: ${totalTime}ms`);
+      console.log(`  Average time per operation: ${avgTimePerOp.toFixed(4)}ms`);
+      console.log(`  Operations per second: ${opsPerSecond.toFixed(2)}`);
+
+      expect(avgTimePerOp).toBeLessThan(10);
+      expect(opsPerSecond).toBeGreaterThan(100);
+    });
+  });
 });

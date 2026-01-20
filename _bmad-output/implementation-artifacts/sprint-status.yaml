@@ -43,7 +43,7 @@ development_status:
   # Epic 1: Real-Time Activity Monitoring (6 stories)
   epic-1: in-progress
   1-1-observe-agent-actions-in-real-time: done
-  1-2-view-activity-buffer-of-50-items: backlog
+  1-2-view-activity-buffer-of-50-items: done
   1-3-display-last-15-activities-in-feed: backlog
   1-4-detect-log-file-changes: backlog
   1-5-parse-jsonl-log-entries: backlog
