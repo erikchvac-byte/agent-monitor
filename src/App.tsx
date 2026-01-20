@@ -1,15 +1,20 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Box, Text, useInput, useApp } from 'ink';
-import chalk from 'chalk';
 import { LogTailer } from './logTailer.js';
 import { NoteWriter } from './notes.js';
-import { Activity, getAgentColor } from './types.js';
+import { Activity } from './types.js';
+import { Header } from './components/Header.js';
+import { ActivityFeed } from './components/ActivityFeed.js';
+import { NoteInput } from './components/NoteInput.js';
+import { Footer } from './components/Footer.js';
+import { logger } from './logger.js';
 
 export const App: React.FC = () => {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [noteMode, setNoteMode] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [statusMessage, setStatusMessage] = useState('Starting monitor...');
+  const [error, setError] = useState<string | null>(null);
   const { exit } = useApp();
 
   const logTailerRef = useRef<LogTailer | null>(null);
@@ -30,6 +35,8 @@ export const App: React.FC = () => {
 
     const startTailer = async () => {
       try {
+        logger.info('Starting Agent Monitor');
+
         await logTailer.start(activity => {
           setActivities(prev => [...prev, activity].slice(-MAX_ACTIVITIES));
         });
@@ -38,14 +45,19 @@ export const App: React.FC = () => {
         const initial = logTailer.getActivities();
         setActivities(initial);
         setStatusMessage('Monitoring active');
+        logger.info('Monitor started successfully', { initialActivities: initial.length });
       } catch (error) {
-        setStatusMessage(`Error: ${error instanceof Error ? error.message : 'Unknown error'}`);
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+        setStatusMessage(`Error: ${errorMsg}`);
+        setError(errorMsg);
+        logger.error('Failed to start monitor', { error: errorMsg });
       }
     };
 
     startTailer();
 
     return () => {
+      logger.info('Shutting down monitor');
       logTailer.stop();
     };
   }, []);
@@ -54,20 +66,29 @@ export const App: React.FC = () => {
     if (noteMode) {
       // In note mode
       if (key.return) {
-        // Save note
-        const noteWriter = noteWriterRef.current;
-        if (noteWriter) {
-          const activeAgents = noteWriter.getActiveAgents(activities);
-          await noteWriter.writeNote(noteText, activeAgents);
-          setStatusMessage(`Note saved: "${noteText.substring(0, 40)}..."`);
+        try {
+          // Save note
+          const noteWriter = noteWriterRef.current;
+          if (noteWriter) {
+            const activeAgents = noteWriter.getActiveAgents(activities);
+            await noteWriter.writeNote(noteText, activeAgents);
+            const preview = noteText.substring(0, 40);
+            setStatusMessage(`Note saved: "${preview}${noteText.length > 40 ? '...' : ''}"`);
+            logger.info('Note saved', { noteLength: noteText.length, agents: activeAgents });
+          }
+          setNoteText('');
+          setNoteMode(false);
+        } catch (error) {
+          const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+          setStatusMessage(`Failed to save note: ${errorMsg}`);
+          logger.error('Failed to save note', { error: errorMsg });
         }
-        setNoteText('');
-        setNoteMode(false);
       } else if (key.escape) {
         // Cancel note
         setNoteText('');
         setNoteMode(false);
         setStatusMessage('Note cancelled');
+        logger.debug('Note cancelled');
       } else if (key.backspace || key.delete) {
         // Delete character
         setNoteText(prev => prev.slice(0, -1));
@@ -81,7 +102,9 @@ export const App: React.FC = () => {
         setNoteMode(true);
         setNoteText('');
         setStatusMessage('Type your note (Enter to save, Esc to cancel)');
+        logger.debug('Note mode activated');
       } else if (input === 'q' || input === 'Q') {
+        logger.info('User requested exit');
         exit();
       } else if (input === '?') {
         setStatusMessage('[N] Note | [Q] Quit | [?] Help');
@@ -89,96 +112,34 @@ export const App: React.FC = () => {
     }
   });
 
-  const formatTimestamp = (timestamp: string): string => {
-    const date = new Date(timestamp);
-    const hours = String(date.getHours()).padStart(2, '0');
-    const minutes = String(date.getMinutes()).padStart(2, '0');
-    const seconds = String(date.getSeconds()).padStart(2, '0');
-    return `${hours}:${minutes}:${seconds}`;
-  };
-
-  const formatAction = (action: string): string => {
-    // Convert action names to human-readable format
-    const actionMap: Record<string, string> = {
-      execute_task: 'Executing',
-      route_task: 'Routing',
-      analyze_task_complexity: 'Analyzing',
-      review_code: 'Reviewing',
-      repair_code: 'Repairing',
-      analyze_error: 'Debugging',
-      document_code: 'Documenting',
-      generate_report: 'Reporting',
-    };
-    return actionMap[action] || action;
-  };
-
-  const getStatusIcon = (status: string): string => {
-    return status === 'success' ? '✓' : '✗';
-  };
+  // Error state rendering
+  if (error) {
+    return (
+      <Box flexDirection="column" padding={1}>
+        <Box borderStyle="round" borderColor="red" padding={1} marginBottom={1}>
+          <Text bold color="red">
+            ERROR: {error}
+          </Text>
+        </Box>
+        <Box padding={1}>
+          <Text>
+            Please check:
+            {'\n'}• Log directory exists: ../Agents/logs/conversation_logs
+            {'\n'}• You have read permissions
+            {'\n'}• Agents are running and generating logs
+            {'\n\n'}Press Q to quit
+          </Text>
+        </Box>
+      </Box>
+    );
+  }
 
   return (
     <Box flexDirection="column" padding={1}>
-      {/* Header */}
-      <Box borderStyle="round" borderColor="cyan" padding={1} marginBottom={1}>
-        <Text bold>
-          {chalk.cyan('AGENT MONITOR')} - {statusMessage}
-        </Text>
-      </Box>
-
-      {/* Activity Feed */}
-      <Box flexDirection="column" height={activities.length + 2} marginBottom={1}>
-        {activities.length === 0 ? (
-          <Text dimColor>Waiting for agent activity...</Text>
-        ) : (
-          activities.slice(-15).map((activity, idx) => {
-            // Displays last 15 activities with newest at the bottom (oldest → newest)
-            // This matches typical log reading pattern where newest events appear last
-            const color = getAgentColor(activity.agent);
-            const icon = getStatusIcon(activity.status);
-            const time = formatTimestamp(activity.timestamp);
-            const actionText = formatAction(activity.action);
-            const durationText = `(${activity.duration_ms}ms)`;
-            const uniqueKey = `${activity.timestamp}-${activity.agent}-${idx}`;
-
-            return (
-              <Box key={uniqueKey} gap={1}>
-                <Text dimColor>{time}</Text>
-                <Text color={color}>[{activity.agent}]</Text>
-                <Text color={activity.status === 'failure' ? 'red' : 'white'}>
-                  {icon} {actionText}
-                </Text>
-                <Text dimColor>{durationText}</Text>
-                {activity.error && (
-                  <Text color="red" bold>
-                    ERROR: {activity.error}
-                  </Text>
-                )}
-              </Box>
-            );
-          })
-        )}
-      </Box>
-
-      {/* Note Input Overlay */}
-      {noteMode && (
-        <Box borderStyle="round" borderColor="yellow" padding={1} marginTop={1}>
-          <Box flexDirection="column">
-            <Text>
-              <Text color="yellow">NOTE:</Text> {noteText}_
-            </Text>
-            <Text dimColor>[Enter] Save | [Esc] Cancel</Text>
-          </Box>
-        </Box>
-      )}
-
-      {/* Footer */}
-      {!noteMode && (
-        <Box borderStyle="single" padding={1} marginTop={1}>
-          <Text dimColor>
-            [N] Take Note | [Q] Quit | [?] Help | Activities: {activities.length}/50
-          </Text>
-        </Box>
-      )}
+      <Header statusMessage={statusMessage} />
+      <ActivityFeed activities={activities} maxDisplay={15} />
+      {noteMode && <NoteInput noteText={noteText} />}
+      {!noteMode && <Footer activityCount={activities.length} maxActivities={MAX_ACTIVITIES} />}
     </Box>
   );
 };

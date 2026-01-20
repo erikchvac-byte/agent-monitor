@@ -3,6 +3,7 @@ import * as path from 'path';
 import * as readline from 'readline';
 import chokidar, { type FSWatcher } from 'chokidar';
 import { Activity, LogEntry } from './types.js';
+import { logger } from './logger.js';
 
 export class LogTailer {
   private logsDir: string;
@@ -11,10 +12,13 @@ export class LogTailer {
   private watcher: FSWatcher | null = null;
   private onActivityCallback: ((activity: Activity) => void) | null = null;
   private filePositions: Map<string, number> = new Map();
+  private parseErrorCount: number = 0;
+  private readonly MAX_PARSE_ERRORS = 10;
 
   constructor(logsDir: string = '../Agents/logs/conversation_logs', maxActivities: number = 50) {
     this.logsDir = path.resolve(logsDir);
     this.maxActivities = maxActivities;
+    logger.debug('LogTailer initialized', { logsDir: this.logsDir, maxActivities });
   }
 
   /**
@@ -25,25 +29,57 @@ export class LogTailer {
 
     // Check if logs directory exists
     if (!fs.existsSync(this.logsDir)) {
+      logger.error('Logs directory not found', { path: this.logsDir });
       throw new Error(`Logs directory not found: ${this.logsDir}`);
     }
 
-    // Read existing log files
-    await this.readExistingLogs();
+    try {
+      // Read existing log files
+      await this.readExistingLogs();
+      logger.info('Loaded existing logs', { count: this.activities.length });
 
-    // Watch for new log files and changes
-    this.watcher = chokidar.watch(`${this.logsDir}/*.log`, {
-      persistent: true,
-      ignoreInitial: true,
-    });
+      // Watch for new log files and changes
+      this.watcher = chokidar.watch(`${this.logsDir}/*.log`, {
+        persistent: true,
+        ignoreInitial: true,
+      });
 
-    this.watcher.on('change', async (filePath: string) => {
-      await this.readNewLines(filePath);
-    });
+      this.watcher.on('change', async (filePath: string) => {
+        try {
+          await this.readNewLines(filePath);
+        } catch (error) {
+          logger.error('Error reading file changes', {
+            filePath,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      });
 
-    this.watcher.on('add', async (filePath: string) => {
-      await this.readNewLines(filePath);
-    });
+      this.watcher.on('add', async (filePath: string) => {
+        try {
+          logger.info('New log file detected', { filePath });
+          await this.readNewLines(filePath);
+        } catch (error) {
+          logger.error('Error reading new file', {
+            filePath,
+            error: error instanceof Error ? error.message : 'Unknown error',
+          });
+        }
+      });
+
+      this.watcher.on('error', (error: unknown) => {
+        logger.error('File watcher error', {
+          error: error instanceof Error ? error.message : 'Unknown error',
+        });
+      });
+
+      logger.info('Log tailer started successfully');
+    } catch (error) {
+      logger.error('Failed to start log tailer', {
+        error: error instanceof Error ? error.message : 'Unknown error',
+      });
+      throw error;
+    }
   }
 
   /**
@@ -53,6 +89,7 @@ export class LogTailer {
     if (this.watcher) {
       this.watcher.close();
       this.watcher = null;
+      logger.info('Log tailer stopped');
     }
   }
 
@@ -195,13 +232,27 @@ export class LogTailer {
       if (this.activities.length > this.maxActivities) {
         this.activities.shift();
       }
+      // Reset error counter on successful parse
+      this.parseErrorCount = 0;
 
       return activity;
-    } catch {
-      // Log parse errors to stderr for debugging
-      console.error(
-        `[${new Date().toISOString()}] [ParseError] Invalid JSON in log line - Verify agent logs are well-formed`
-      );
+    } catch (error) {
+      this.parseErrorCount++;
+
+      if (this.parseErrorCount <= this.MAX_PARSE_ERRORS) {
+        logger.warn('Failed to parse log line', {
+          line: line.substring(0, 100),
+          error: error instanceof Error ? error.message : 'Unknown error',
+          errorCount: this.parseErrorCount,
+        });
+      }
+
+      if (this.parseErrorCount === this.MAX_PARSE_ERRORS) {
+        logger.error('Max parse errors reached, suppressing further warnings', {
+          maxErrors: this.MAX_PARSE_ERRORS,
+        });
+      }
+
       return null;
     }
   }
