@@ -11,6 +11,7 @@ A read-only CLI tool for monitoring MCP (Model Context Protocol) agent activity 
 ## Executive Summary
 
 Agent Monitor is a TypeScript CLI tool built with React (ink) for terminal UI and chokidar for file watching. It monitors JSONL log files from an external MCP agent system, parses agent actions, and displays a live terminal UI with:
+
 - Color-coded agent types (router/coordinator=blue, specialist=green, qa=yellow)
 - Scrollable history of last 50 agent activities
 - Interactive note-taking with auto-tagging
@@ -21,6 +22,7 @@ Agent Monitor is a TypeScript CLI tool built with React (ink) for terminal UI an
 ## Key Features
 
 ### Real-Time Activity Feed
+
 - Watch JSONL log files for agent activity
 - Display agent actions as they happen
 - Color-coded by agent type for quick visual identification
@@ -28,35 +30,38 @@ Agent Monitor is a TypeScript CLI tool built with React (ink) for terminal UI an
 - Show success/failure status with icons (✓/✗)
 
 ### Interactive Note-Taking
+
 - Press `N` to enter note mode
 - Type observations during monitoring sessions
 - Auto-tag notes with active agents (last 10 seconds)
 - Notes saved to `progress-notes.txt` with timestamps
 
 ### Error Highlighting
+
 - Prominently display failed agent actions
 - Show error messages in red
 - Quickly identify issues requiring attention
 
 ### Keyboard Controls
-| Key | Action |
-|-----|--------|
-| `N` | Enter note mode (type note, Enter to save) |
-| `Esc` | Exit note mode without saving |
-| `Q` | Quit monitor |
-| `?` | Show help |
+
+| Key   | Action                                     |
+| ----- | ------------------------------------------ |
+| `N`   | Enter note mode (type note, Enter to save) |
+| `Esc` | Exit note mode without saving              |
+| `Q`   | Quit monitor                               |
+| `?`   | Show help                                  |
 
 ## Tech Stack Summary
 
-| Category | Technology | Version |
-|----------|------------|---------|
-| **Language** | TypeScript | 5.9.3 |
-| **Runtime** | Node.js | ES2020 |
-| **CLI Framework** | ink | 6.6.0 |
-| **UI Library** | React | 19.2.3 |
-| **File Watching** | chokidar | 5.0.0 |
-| **Terminal Styling** | chalk | 5.6.2 |
-| **Testing** | Jest | 30.2.0 (infrastructure ready) |
+| Category             | Technology | Version                       |
+| -------------------- | ---------- | ----------------------------- |
+| **Language**         | TypeScript | 5.9.3                         |
+| **Runtime**          | Node.js    | ES2020                        |
+| **CLI Framework**    | ink        | 6.6.0                         |
+| **UI Library**       | React      | 19.2.3                        |
+| **File Watching**    | chokidar   | 5.0.0                         |
+| **Terminal Styling** | chalk      | 5.6.2                         |
+| **Testing**          | Jest       | 30.2.0 (105 tests, 100% pass) |
 
 ## Architecture Type
 
@@ -113,6 +118,7 @@ C:\Users\erikc\Dev\Lincoln/
 ✅ **MVP Complete**
 
 ### Completed Features
+
 - [x] Initialize Git repository
 - [x] Verify log path exists
 - [x] Create .gitignore
@@ -128,6 +134,7 @@ C:\Users\erikc\Dev\Lincoln/
 - [x] Keyboard input handling
 
 ### Planned Enhancements
+
 - [ ] Add filtering by agent type
 - [ ] Add search functionality
 - [ ] Add session statistics
@@ -145,6 +152,7 @@ C:\Users\erikc\Dev\Lincoln/
 **Format:** JSONL (one JSON object per line)
 
 ### Log Entry Schema
+
 ```json
 {
   "timestamp": "2024-01-01T00:00:00.000Z",
@@ -161,12 +169,12 @@ C:\Users\erikc\Dev\Lincoln/
 
 Agent Monitor automatically classifies agents by name pattern:
 
-| Agent Type | Pattern Match | Color |
-|-----------|--------------|--------|
-| **Router/Coordinator** | Name includes "router" or "coordinator" | 🔵 Blue |
-| **Specialist** | Name includes "specialist" | 🟢 Green |
-| **QA Agents** | Name includes "critic", "repair", or "debug" | 🟡 Yellow |
-| **Unknown** | No match | ⚫ Gray |
+| Agent Type             | Pattern Match                                | Color     |
+| ---------------------- | -------------------------------------------- | --------- |
+| **Router/Coordinator** | Name includes "router" or "coordinator"      | 🔵 Blue   |
+| **Specialist**         | Name includes "specialist"                   | 🟢 Green  |
+| **QA Agents**          | Name includes "critic", "repair", or "debug" | 🟡 Yellow |
+| **Unknown**            | No match                                     | ⚫ Gray   |
 
 ## Usage Example
 
@@ -202,16 +210,19 @@ Task took longer than expected
 ## Performance Characteristics
 
 ### Memory Usage
+
 - **Activity Buffer:** 50 Activity objects in memory (~5KB estimated)
 - **Log File Reading:** Stream-based (no full file loads)
 - **React State:** Only last 50 activities in state at any time
 
 ### File I/O Performance
+
 - **File Watching:** chokidar uses native OS file system events (efficient)
 - **Log Reading:** Incremental (last 20 lines on startup, last 5 lines on change)
 - **Note Writing:** Append-only (no file rewriting)
 
 ### UI Performance
+
 - **Re-render Frequency:** On file change events (typically < 1/second)
 - **Display:** Last 15 of 50 activities (limited DOM rendering)
 - **Keyboard Input:** Instant (no debouncing)
@@ -219,11 +230,13 @@ Task took longer than expected
 ## Getting Started
 
 ### Prerequisites
+
 - Node.js v18+
 - npm v9+
 - Git (for cloning)
 
 ### Quick Start
+
 ```bash
 # Clone repository
 git clone https://github.com/erikchvac-byte/agent-monitor.git
@@ -238,16 +251,16 @@ npm run dev
 
 ### Documentation
 
-| Document | Description |
-|----------|-------------|
-| [README.md](../README.md) | Detailed usage guide and installation instructions |
-| [CLAUDE.md](../CLAUDE.md) | Development guidance for Claude Code agent assistance |
-| [TESTING.md](../TESTING.md) | Testing strategies and procedures |
-| [Technology Stack](./technology-stack.md) | Detailed technology stack and architecture patterns |
-| [Architecture](./architecture.md) | System architecture and design patterns |
-| [Source Tree Analysis](./source-tree-analysis.md) | Annotated source code structure |
-| [Development Guide](./development-guide.md) | Development workflow and common tasks |
-| [CLI Project Analysis](./cli-project-analysis.md) | Deep analysis of CLI project type |
+| Document                                          | Description                                           |
+| ------------------------------------------------- | ----------------------------------------------------- |
+| [README.md](../README.md)                         | Detailed usage guide and installation instructions    |
+| [CLAUDE.md](../CLAUDE.md)                         | Development guidance for Claude Code agent assistance |
+| [TESTING.md](../TESTING.md)                       | Testing strategies and procedures                     |
+| [Technology Stack](./technology-stack.md)         | Detailed technology stack and architecture patterns   |
+| [Architecture](./architecture.md)                 | System architecture and design patterns               |
+| [Source Tree Analysis](./source-tree-analysis.md) | Annotated source code structure                       |
+| [Development Guide](./development-guide.md)       | Development workflow and common tasks                 |
+| [CLI Project Analysis](./cli-project-analysis.md) | Deep analysis of CLI project type                     |
 
 ## Known Limitations
 
@@ -272,15 +285,15 @@ npm run dev
 
 ## Project Health
 
-| Category | Score | Status |
-|----------|-------|--------|
-| **Code Organization** | 9/10 | Clean structure, well-separated concerns |
-| **Type Safety** | 10/10 | Strict TypeScript mode, comprehensive types |
-| **Testing** | 0/10 | No tests (infrastructure ready but unused) |
-| **CI/CD** | 0/10 | No automation |
-| **Documentation** | 8/10 | Good README and inline docs, but no API docs |
-| **Maintainability** | 9/10 | Small codebase, clear architecture |
-| **Overall** | **6/10** | Good foundation, needs testing and CI/CD |
+| Category              | Score    | Status                                       |
+| --------------------- | -------- | -------------------------------------------- |
+| **Code Organization** | 9/10     | Clean structure, well-separated concerns     |
+| **Type Safety**       | 10/10    | Strict TypeScript mode, comprehensive types  |
+| **Testing**           | 10/10    | 105 tests (100% pass rate, 54.86% coverage)  |
+| **CI/CD**             | 0/10     | No automation                                |
+| **Documentation**     | 8/10     | Good README and inline docs, but no API docs |
+| **Maintainability**   | 9/10     | Small codebase, clear architecture           |
+| **Overall**           | **6/10** | Good foundation, needs testing and CI/CD     |
 
 ---
 
