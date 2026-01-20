@@ -57,7 +57,7 @@ Developers can understand agent behavior in real-time through a color-coded feed
 - 70-85% reduction in debugging time: from 15-30 minutes of manual log parsing to 2-5 minutes with visual monitoring
 - 50% faster issue resolution: rapid identification of failing agents and error patterns
 - 90% faster onboarding: new team members understand agent behavior in 1-2 hours versus 1-2 days of studying documentation and logs
-- >90% adoption rate for agent-related debugging sessions: tool becomes standard workflow for all agent development and troubleshooting
+- > 90% adoption rate for agent-related debugging sessions: tool becomes standard workflow for all agent development and troubleshooting
 
 ### Technical Success
 
@@ -66,18 +66,18 @@ Developers can understand agent behavior in real-time through a color-coded feed
 - Memory usage under 50MB: efficient resource utilization for long-running monitoring sessions
 - Cross-platform reliability: consistent behavior on Windows, macOS, and Linux
 - Graceful degradation: handles edge cases (missing directories, invalid JSON, non-TTY environments) without crashing
-- Maintainable architecture: clean separation of concerns (LogTailer, NoteWriter, App) enables future enhancements
+- Maintainable architecture: clean separation of concerns (LogTailer, NoteWriter, Logger, App) enables future enhancements
 
 ### Measurable Outcomes
 
-| Metric | Current State | Target | Measurement Method |
-|--------|---------------|--------|-------------------|
-| Debugging Time | 15-30 min/session | 2-5 min/session | Time tracking before/after tool usage |
-| Issue Resolution | Baseline | 50% faster | Issue closure time comparison |
-| Onboarding Time | 1-2 days | 1-2 hours | New team member productivity assessment |
-| Adoption Rate | N/A | >90% | Usage analytics for agent debugging sessions |
-| UI Responsiveness | N/A | <100ms | Performance monitoring on file changes |
-| Memory Usage | N/A | <50MB | Process memory monitoring during operation |
+| Metric            | Current State     | Target          | Measurement Method                           |
+| ----------------- | ----------------- | --------------- | -------------------------------------------- |
+| Debugging Time    | 15-30 min/session | 2-5 min/session | Time tracking before/after tool usage        |
+| Issue Resolution  | Baseline          | 50% faster      | Issue closure time comparison                |
+| Onboarding Time   | 1-2 days          | 1-2 hours       | New team member productivity assessment      |
+| Adoption Rate     | N/A               | >90%            | Usage analytics for agent debugging sessions |
+| UI Responsiveness | N/A               | <100ms          | Performance monitoring on file changes       |
+| Memory Usage      | N/A               | <50MB           | Process memory monitoring during operation   |
 
 ## Product Scope
 
@@ -93,10 +93,22 @@ The current production-ready system provides core monitoring capabilities:
 - Keyboard controls: `N` for notes, `Q` to quit, `?` for help, `Esc` to cancel
 
 **Technical Foundation:**
+
 - Event-driven architecture using chokidar for cross-platform file watching
 - React + ink for reactive terminal UI with functional components and hooks
 - TypeScript with strict type safety
 - Circular buffer pattern for memory-efficient activity management
+- Logger module for structured logging (timestamped debug/info/warn/error levels)
+
+**Component Structure:**
+
+- `src/App.tsx` - Main React component with state management and keyboard input handling
+- `src/logTailer.ts` - File watcher and JSONL parser with circular buffer
+- `src/notes.ts` - Note writer with auto-tagging based on recent agent activity
+- `src/logger.ts` - Structured logging utility
+- `src/types.ts` - Type definitions for Activity, LogEntry, AgentType, and helper functions
+- `src/components/` - UI components: Header.tsx, ActivityFeed.tsx, NoteInput.tsx, Footer.tsx
+- `src/index.ts` - Application entry point
 
 ### Growth Features (Post-MVP)
 
@@ -240,24 +252,28 @@ Agent Monitor is a **purely interactive** terminal-based monitoring tool designe
 ### Command Structure
 
 **Current Architecture:**
+
 - **Launch Method:** npm scripts (`npm run dev` for development with hot reload, `npm start` for production)
 - **Interactive Mode:** Full terminal UI with ink/React rendering
 - **Keyboard Controls:** `N` (note mode), `Q` (quit), `?` (help), `Esc` (cancel)
 - **No Traditional CLI Arguments:** Tool does not use flag-based command structure
 
 **Future Consideration (Growth Features):**
+
 - May evolve to support CLI arguments for configuration overrides
 - Shell completion for discoverability (if traditional CLI structure is adopted)
 
 ### Output Formats
 
 **Current Implementation:**
+
 - **Primary Output:** Interactive terminal UI with ink component rendering
 - **Note File:** `progress-notes.txt` (append-only text with auto-tagging)
 - **Error Display:** Red highlighting within terminal UI for failed agent actions
 - **No Structured Export:** JSON, structured logs, or data export not currently supported
 
 **Future Consideration (Growth Features):**
+
 - Session statistics and reports for analysis
 - Activity history database for persistent data
 - Potential export formats for integration with other tools
@@ -273,6 +289,7 @@ Agent Monitor is a **purely interactive** terminal-based monitoring tool designe
 | Notes File | `./progress-notes.txt` | `src/notes.ts` |
 
 **Future Consideration (Growth Features):**
+
 - Configuration file support (YAML or JSON) for customization
 - Runtime configuration via environment variables
 - User configuration in home directory for personal preferences
@@ -282,11 +299,13 @@ Agent Monitor is a **purely interactive** terminal-based monitoring tool designe
 **Current Status:** Not Supported
 
 Agent Monitor is designed for **interactive human-in-the-loop** monitoring during development sessions. Scriptable/automated use cases are not currently supported:
+
 - No batch mode or non-interactive operation
 - No programmatic output for CI/CD integration
 - No automated report generation
 
 **Future Consideration (Vision):**
+
 - As tool evolves into observability platform, may support:
   - Headless mode for server deployment
   - Automated alert triggering for production environments
@@ -295,16 +314,19 @@ Agent Monitor is designed for **interactive human-in-the-loop** monitoring durin
 ### Technical Architecture Considerations
 
 **Terminal UI Constraints:**
+
 - Requires TTY support (`process.stdin.isTTY`) for keyboard input
 - Graceful degradation to read-only mode in non-TTY environments (piped/redirected output)
 - Limited display area (typically 80x24 characters) - activity feed shows last 15 of 50 buffered items
 
 **Event-Driven Performance:**
+
 - UI updates triggered on file system events (chokidar)
 - Target responsiveness: <100ms from file change to UI update
 - Memory management: Circular buffer prevents unbounded memory growth (<50MB target)
 
 **Cross-Platform Reliability:**
+
 - File watching must work consistently on Windows, macOS, and Linux
 - Keyboard input handling across different terminal emulators
 - Path handling for Windows (backslashes) vs Unix (forward slashes)
@@ -312,19 +334,34 @@ Agent Monitor is designed for **interactive human-in-the-loop** monitoring durin
 ### Implementation Considerations
 
 **Development Workflow:**
+
 - Hot reload enabled via `tsx watch` during `npm run dev`
 - TypeScript compilation to `dist/` for production builds
 - Source maps generated for debugging compiled JavaScript
 
 **Distribution:**
+
 - Binary executable via `dist/index.js` with shebang `#!/usr/bin/env node`
 - npm package distribution via `agent-monitor` package name
 - Potential global installation for system-wide CLI availability
 
 **Testing Strategy:**
-- Test infrastructure ready (Jest, ts-jest) but not yet implemented
-- Unit tests needed for: LogTailer (JSONL parsing, buffer logic), NoteWriter (timestamp formatting, auto-tagging)
-- Integration tests needed for: keyboard input handling, state transitions, file watching behavior
+
+- ✅ Test infrastructure implemented (Jest, ts-jest)
+- ✅ **Comprehensive test suite**: 106 tests across 4 test files
+  - **logTailer.test.ts** (68 tests): Unit tests for JSONL parsing, circular buffer logic, NFR compliance
+  - **notes.test.ts** (14 tests): Unit tests for note writing, timestamp formatting, auto-tagging
+  - **types.test.ts** (9 tests): Unit tests for agent type detection and color mapping
+  - **App.test.tsx** (15 tests): Component logic, state management, activity buffer tests
+- ✅ **NFR Compliance Tests**: Performance tests validate:
+  - UI updates within 100ms (NFR-P1)
+  - Startup time under 5 seconds (NFR-P4)
+  - Memory usage under 50MB (NFR-P3)
+  - Circular buffer performance with high-frequency inserts
+- **Test Configuration**:
+  - Coverage threshold: 40% (branches, functions, lines, statements)
+  - ESM module support with ts-jest
+  - Mock filesystem and file watching for isolated testing
 
 ## Project Scoping & Phased Development
 
@@ -335,6 +372,7 @@ Agent Monitor is designed for **interactive human-in-the-loop** monitoring durin
 Agent Monitor follows a problem-solving MVP strategy, validated through actual team usage. The core problem (manual log parsing taking 15-30 minutes per debugging session) is transformed into a visual monitoring experience (2-5 minutes). The MVP was built by a developer for developers, solving a real pain point they experienced daily.
 
 **Resource Requirements:**
+
 - **Team Size:** Single developer (solo project)
 - **Skills Required:** TypeScript, React (ink), Node.js, terminal UI design
 - **Development Timeline:** Complete MVP (built and deployed)
@@ -343,6 +381,7 @@ Agent Monitor follows a problem-solving MVP strategy, validated through actual t
 ### MVP Feature Set (Phase 1)
 
 **Core User Journeys Supported:**
+
 - ✅ Journey 1 (Sarah): Real-time debugging with pattern recognition
 - ✅ Journey 2 (Alex): Onboarding acceleration through observation
 - ✅ Journey 3 (Jordan): Data-driven architecture decisions
@@ -350,19 +389,21 @@ Agent Monitor follows a problem-solving MVP strategy, validated through actual t
 **Must-Have Capabilities:**
 All current MVP features are essential for the three user journeys:
 
-| Feature | Journey Dependency | Essential Rationale |
-|---------|-------------------|-------------------|
-| Real-time Activity Feed | All three | Users cannot observe agent behavior without live feed |
-| Color-Coded Agent Types | Sarah, Alex | Pattern recognition impossible without visual differentiation |
-| Error Highlighting | Sarah | Immediate visibility into failures required for debugging |
-| Scrollable History | Sarah, Jordan | Tracing workflow sequences requires historical context |
-| Note-Taking with Auto-Tagging | Sarah | Manual notes possible, but auto-tagging provides significant value (agent associations) |
-| Keyboard Controls (N/Q/?/Esc) | All three | Interactive tool requires keyboard interaction |
+| Feature                       | Journey Dependency | Essential Rationale                                                                     |
+| ----------------------------- | ------------------ | --------------------------------------------------------------------------------------- |
+| Real-time Activity Feed       | All three          | Users cannot observe agent behavior without live feed                                   |
+| Color-Coded Agent Types       | Sarah, Alex        | Pattern recognition impossible without visual differentiation                           |
+| Error Highlighting            | Sarah              | Immediate visibility into failures required for debugging                               |
+| Scrollable History            | Sarah, Jordan      | Tracing workflow sequences requires historical context                                  |
+| Note-Taking with Auto-Tagging | Sarah              | Manual notes possible, but auto-tagging provides significant value (agent associations) |
+| Keyboard Controls (N/Q/?/Esc) | All three          | Interactive tool requires keyboard interaction                                          |
 
 **Nice-to-Have for MVP:**
+
 - Previous notes in `progress-notes.txt`: Valuable for onboarding (Alex's journey) but not essential - Alex could learn solely through observation
 
 **MVP Validation Metrics:**
+
 - ✅ 70-85% reduction in debugging time (15-30 min → 2-5 min)
 - ✅ 50% faster issue resolution
 - ✅ 90% faster onboarding (1-2 days → 1-2 hours)
@@ -427,28 +468,28 @@ Long-term capabilities transforming Agent Monitor into observability platform:
 
 **Technical Risks:**
 
-| Risk | Mitigation Approach |
-|-------|-------------------|
-| Cross-platform file watching reliability | Use proven chokidar library with extensive cross-platform testing |
-| Terminal UI limitations (display area, TTY dependency) | Graceful degradation to read-only mode for non-TTY environments |
-| Memory management (circular buffer overflow) | Fixed-size buffer (50 activities) with automatic FIFO overflow handling |
-| Activity database migration (Phase 2) | Phased rollout: optional feature first, then primary persistence later |
+| Risk                                                   | Mitigation Approach                                                     |
+| ------------------------------------------------------ | ----------------------------------------------------------------------- |
+| Cross-platform file watching reliability               | Use proven chokidar library with extensive cross-platform testing       |
+| Terminal UI limitations (display area, TTY dependency) | Graceful degradation to read-only mode for non-TTY environments         |
+| Memory management (circular buffer overflow)           | Fixed-size buffer (50 activities) with automatic FIFO overflow handling |
+| Activity database migration (Phase 2)                  | Phased rollout: optional feature first, then primary persistence later  |
 
 **Market Risks:**
 
-| Risk | Validation Approach |
-|-------|-------------------|
-| Adoption risk - will developers use this? | **Validated:** >90% actual adoption rate for agent debugging sessions |
-| Competitive risk - existing tools? | Low competitive pressure - this is internal tool for specific MCP agent workflow |
-| Market fit - is problem real enough? | **Validated:** 70-85% measurable reduction in debugging time |
+| Risk                                      | Validation Approach                                                              |
+| ----------------------------------------- | -------------------------------------------------------------------------------- |
+| Adoption risk - will developers use this? | **Validated:** >90% actual adoption rate for agent debugging sessions            |
+| Competitive risk - existing tools?        | Low competitive pressure - this is internal tool for specific MCP agent workflow |
+| Market fit - is problem real enough?      | **Validated:** 70-85% measurable reduction in debugging time                     |
 
 **Resource Risks:**
 
-| Risk | Contingency Approach |
-|-------|-------------------|
-| Solo developer capacity for Growth features | Prioritize features by user value: configuration file first (high impact, low complexity), then filtering/search |
-| Limited testing coverage for complex features | Leverage existing Jest infrastructure; add tests incrementally with each new feature |
-| Database complexity for activity history | Start with simple JSON file persistence; upgrade to SQLite/PostgreSQL only if volume warrants it |
+| Risk                                          | Contingency Approach                                                                                             |
+| --------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Solo developer capacity for Growth features   | Prioritize features by user value: configuration file first (high impact, low complexity), then filtering/search |
+| Limited testing coverage for complex features | Leverage existing Jest infrastructure; add tests incrementally with each new feature                             |
+| Database complexity for activity history      | Start with simple JSON file persistence; upgrade to SQLite/PostgreSQL only if volume warrants it                 |
 
 **Overall Risk Assessment:** Low to Medium
 
